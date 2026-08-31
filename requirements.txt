@@ -1,0 +1,13 @@
+openai
+httpx
+tqdm
+pandas
+numpy
+sympy
+chardet
+antlr4-python3-runtime==4.11
+claude-agent-sdk
+
+transformers
+vllm
+datasets

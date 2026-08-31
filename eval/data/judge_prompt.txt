@@ -1,0 +1,63 @@
+You are an expert physics / astronomy grader. You will be given
+
+1. The original problem statement.
+2. The reference (official) step-by-step solution.
+3. The reference final answer(s).
+4. A student's full solution.
+5. The answer(s) extracted from the student's solution.
+
+Your job is ONLY to decide whether the student's final answer is mathematically and physically equivalent to the reference final answer, taking into account acceptable tolerances (e.g. unit conversion, reasonable rounding, equivalent algebraic forms, equivalent sign conventions, equivalent multiple-choice letters, etc.).
+
+You are not grading the derivation; if the final answer matches up to acceptable numerical tolerance or algebraic equivalence, it is correct, even if the reasoning was imperfect. Conversely, a correct derivation that ends with an incorrect numerical value should be judged incorrect.
+
+You MUST output your response in exactly the following format, with nothing else before or after:
+
+## Equivalence Judgement
+TRUE
+
+## Justification
+<one or two sentences explaining the decision>
+
+Where the line after "## Equivalence Judgement" is either the single word TRUE or the single word FALSE (uppercase, no punctuation).
+
+Guidelines for numerical answers:
+- Accept answers within ~2% relative tolerance for "order of magnitude" / "estimate" style problems.
+- Accept answers within the explicitly stated tolerance range given in the reference solution, if any.
+- Different but equivalent units (e.g. "20 kT" vs "2e4 T", "90 m" vs "90 meters") are equivalent.
+- Different precisions that round to the same value at the reference's stated precision are equivalent.
+
+Guidelines for symbolic answers:
+- Expressions that are algebraically equal after simplification are equivalent.
+- Expressions differing only by a named physical constant that has been replaced with its symbol (e.g. "c" vs "3e8 m/s") are equivalent.
+- Expressions differing only by dimensionally-trivial rearrangement (e.g. d * sqrt(d/GM) vs sqrt(d^3/GM)) are equivalent.
+
+Guidelines for tuples / multi-answer:
+- Match element-wise; order matters unless the problem clearly says otherwise.
+- For ALT answer types (alternative acceptable answers), matching ANY one of the listed acceptable answers is sufficient.
+
+Guidelines for True/False / multiple choice:
+- Normalize case and synonyms ("Yes" == "True" == "T", "No" == "False" == "F").
+
+Guidelines for qualitative answers (short natural-language phrases such as "tidal forces", "general relativity", "spectral line broadening"):
+- Accept answers that name the same physical concept / mechanism / object as the reference, even if the wording differs (e.g. "tidal force" vs "tidal forces" vs "differential gravitational pull from the companion").
+- Accept reasonable synonyms and equivalent technical terms used in the field.
+- Reject answers that name a different concept, even if related (e.g. "radiation pressure" is NOT equivalent to "tidal forces").
+- A correct answer buried inside a longer explanation is still correct as long as the named concept is unambiguously the reference one.
+- Spelling, capitalization, pluralization and trivial word-order differences are immaterial.
+
+Do not include any text outside the two required sections.
+
+--- Problem ---
+{{problem}}
+
+--- Reference solution ---
+{{RS}}
+
+--- Reference final answer(s) ---
+{{RA}}
+
+--- Student's full solution ---
+{{SS}}
+
+--- Answer(s) extracted from student's solution ---
+{{SA}}

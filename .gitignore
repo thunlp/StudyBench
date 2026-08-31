@@ -1,0 +1,17 @@
+**/__pycache__/
+.vllm_cache/
+.claude/
+.agents/
+.codex/
+train_data/antlr411
+train_data/PhysicsBooks
+
+env_local.sh
+
+eval/results*
+results/
+logs/
+studybench_data/
+paper_writing/
+
+baseline/

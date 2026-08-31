@@ -1,0 +1,99 @@
+==============================================================================
+(1) Test sets  --  held-out evaluation problems (qwen3-8b 8/8 failures)
+    source root: eval/data/
+    note: solo parents count as 1 flattened sub-problem
+==============================================================================
+
+--- (a) Competition test set
+    source: eval/data/qwen3_8b_competition_problem.json
+
+    Overall: 90 parents, 280 sub-problems  (multi-sub: 90,  solo: 0)
+
+    By source:
+
+      source  parents  sub_problems
+      ------  -------  ------------
+      IPhO    30       113         
+      IOAA    24       70          
+      NBPhO   16       43          
+      APhO    14       45          
+      EuPhO   5        7           
+      OPhO    1        2           
+      TOTAL   90       280         
+
+    By sub-discipline:
+
+      sub_discipline                          parents  sub_problems
+      --------------------------------------  -------  ------------
+      Mechanics                               28       89          
+      Astronomy and Astrophysics              23       67          
+      Electromagnetic Fields                  18       59          
+      Thermodynamics & Statistical Physics    8        19          
+      Quantum Physics                         4        15          
+      Thermodynamics and Statistical Physics  4        12          
+      Oscillations and Waves                  3        12          
+      Relativity                              2        7           
+      TOTAL                                   90       280         
+
+--- (b) Textbook test set
+    source: eval/data/qwen3_8b_textbook_problem.json
+
+    Overall: 88 parents, 109 sub-problems  (multi-sub: 23,  solo: 65)
+
+==============================================================================
+(2) Per-textbook rollup  --  corpus + instructions + test coverage
+    joined on the `source` code (book / competition), one row per source
+==============================================================================
+
+  textbook                          sub_discipline    corpus_tok  instr  w/ans  verif  multi  unverif  hard  test_prob  test_sub
+  --------------------------------  ----------------  ----------  -----  -----  -----  -----  -------  ----  ---------  --------
+  Morin_ClassicalMechanics          Mechanics         466,762     161    34     24     10     127      -     5          5       
+  Kleppner_Mechanics                Mechanics         572,104     121    100    76     24     21       -     13         17      
+  Griffiths_Electrodynamics         Electromagnetism  956,779     213    176    120    56     37       -     10         11      
+  Purcell_EM                        Electromagnetism  953,904     173    140    107    33     33       -     9          12      
+  CarrollOstlie_ModernAstrophysics  Astrophysics      929,364     521    354    79     275    167      -     9          13      
+  Palen_SchaumAstronomy             Astrophysics      134,974     219    219    216    3      -        -     5          5       
+  EisbergResnick_QuantumPhysics     Quantum Physics   752,644     237    82     48     34     155      -     15         17      
+  Blundell_ThermalPhysics           Thermal Physics   467,049     280    203    149    54     77       -     12         15      
+  French_SpecialRelativity          Relativity        165,239     82     69     21     48     13       -     1          1       
+  TaylorWheeler_SpacetimePhysics    Relativity        262,591     30     17     8      9      13       -     2          2       
+  Georgi_Waves                      Waves             340,846     29     26     19     7      3        -     7          11      
+  TOTAL                                               6,002,256   2,066  1,420  867    553    646      -     88         109     
+
+    Columns:
+      sub_discipline  physics area the textbook covers (`-` = competition source)
+      corpus_tok raw markdown Qwen3 tokens, textbook + its solution manual; `-` = competition source (no textbook)
+      instr      instructions attributed to this source (all 4 files)
+      w/ans      subset of instr whose `answer` field is non-empty
+      verif/multi/unverif/hard instr split by file (verifiable / multi_subs / unverifiable / hard)
+      test_prob  parents in eval/data/qwen3_8b_textbook_problem.json (test_sub: flattened)
+
+    Notes:
+      - instr `source` is read directly from each training record's metadata.
+      - `hard` overlaps `test_prob`: verifiable_instr_hard is recycled
+        from the textbook test set into training.
+
+    By sub-discipline -- training instructions + textbook test problems:
+
+      sub_discipline    instr  instr_pct  test_prob  test_prob_pct  test_sub  test_sub_pct
+      ----------------  -----  ---------  ---------  -------------  --------  ------------
+      Mechanics         282    13.65%     18         20.45%         22        20.18%      
+      Electromagnetism  386    18.68%     19         21.59%         23        21.10%      
+      Astrophysics      740    35.82%     14         15.91%         18        16.51%      
+      Quantum Physics   237    11.47%     15         17.05%         17        15.60%      
+      Thermal Physics   280    13.55%     12         13.64%         15        13.76%      
+      Relativity        112    5.42%      3          3.41%          3         2.75%       
+      Waves             29     1.40%      7          7.95%          11        10.09%      
+      TOTAL             2,066  100.00%    88         100.00%        109       100.00%     
+
+      Percentages use the corresponding column total as denominator.
+      test_prob counts parent problems; test_sub counts flattened evaluation units.
+
+==============================================================================
+Sanity check: every test-set unit has a judgeable answer
+    answer_type ∈ ['ALT', 'EQ', 'EX', 'IN', 'MC', 'NV', 'QL', 'TF', 'TUP']
+==============================================================================
+  [       OK] competition   90 parent(s)  (eval/data/qwen3_8b_competition_problem.json)
+  [       OK] textbook      88 parent(s)  (eval/data/qwen3_8b_textbook_problem.json)
+
+  Summary: 178 parent(s) checked, 0 failing.
