@@ -1,19 +1,21 @@
-"""批量调用 MinerU 精准解析 API，把指定目录下所有 PDF 转为 Markdown。
+"""Batch-convert PDFs under a directory to Markdown via the MinerU parse API.
 
-文档: https://mineru.net/apiManage/docs
+Docs: https://mineru.net/apiManage/docs
 
-行为：
-  1. 在 <target_dir> 下递归找出所有 .pdf
-  2. 同名输出目录已存在且含 full.md，则视为已完成跳过（除非 --force）
-  3. 其余文件按 batch 提交：申请签名 URL → PUT 上传 → 轮询 → 下载 zip
-  4. 解压到与源文件同目录的同名文件夹（例：foo/bar.pdf -> foo/bar/）
-  5. 把 zip 内 <uuid>_content_list.json / _model.json / _origin.pdf
-     重命名为 <basename>_content_list.json / _model.json / _origin.pdf
-  6. 用 tqdm 显示总进度和当前阶段；额度耗尽 / 鉴权失败时立刻终止
+Behavior:
+  1. Recursively find all .pdf files under <target_dir>
+  2. Skip a PDF whose same-named output dir already contains full.md
+     (unless --force)
+  3. Submit the rest in batches: signed URL -> PUT upload -> poll -> download zip
+  4. Extract into a sibling folder named after the source
+     (e.g. foo/bar.pdf -> foo/bar/)
+  5. Rename zip members <uuid>_content_list.json / _model.json / _origin.pdf
+     to <basename>_content_list.json / _model.json / _origin.pdf
+  6. Show overall progress with tqdm; stop immediately on quota / auth failure
 
-示例：
+Example:
   export MINERU_TOKEN="xxx"
-  python3 process/mineru_parse.py raw_data/NBPhO --model vlm --language en
+  python3 corpus_scripts/mineru_parse.py quantum_physics --model vlm --language en
 """
 
 from __future__ import annotations
@@ -35,12 +37,12 @@ API_BASE = "https://mineru.net/api/v4"
 SUBMIT_FILE_BATCH = f"{API_BASE}/file-urls/batch"
 QUERY_BATCH = f"{API_BASE}/extract-results/batch/{{batch_id}}"
 
-# 单批最多 50 个文件（接口硬限制）
+# Hard API limit: at most 50 files per batch
 MAX_BATCH_SIZE = 50
 
-# 每日额度耗尽 / html 额度耗尽
+# Daily quota exhausted / HTML quota exhausted
 QUOTA_ERROR_CODES = {-60018, -60019}
-# Token 错误 / 过期
+# Bad or expired token
 AUTH_ERROR_CODES = {"A0202", "A0211"}
 
 RENAME_SUFFIXES = ("_content_list.json", "_model.json", "_origin.pdf")
@@ -58,11 +60,11 @@ class MineruError(RuntimeError):
 
 
 class QuotaExhaustedError(MineruError):
-    """每日解析额度耗尽（-60018 / -60019）。"""
+    """Daily parse quota exhausted (-60018 / -60019)."""
 
 
 class AuthError(MineruError):
-    """Token 错误或过期（A0202 / A0211）。"""
+    """Bad or expired token (A0202 / A0211)."""
 
 
 # ---------------- HTTP helpers ----------------
@@ -91,11 +93,11 @@ def _check_response(body: dict[str, Any]) -> None:
 
 
 def find_pdfs(root: Path) -> list[Path]:
-    """递归扫描所有 pdf，但跳过位于 MinerU 输出目录中的 pdf。
+    """Recursively find PDFs, skipping files that already live in a MinerU output dir.
 
-    上一次转换会在 <basename>/ 目录里产出 <basename>_origin.pdf，若不排除会被
-    再次提交，进入 <basename>_origin/<basename>_origin_origin.pdf 这种无限递归。
-    判定方式：pdf 的父目录里含有 DONE_MARKER（full.md），即视为输出目录内文件。
+    A previous run writes <basename>_origin.pdf inside <basename>/. If those
+    were submitted again they would nest as <basename>_origin/<basename>_origin_origin.pdf.
+    Treat a PDF as in-output if its parent directory contains DONE_MARKER (full.md).
     """
     pdfs: list[Path] = []
     for p in root.rglob("*.pdf"):
@@ -131,9 +133,9 @@ def submit_batch(
     page_ranges: str | None,
     extra_formats: list[str] | None,
 ) -> tuple[str, list[str], list[str]]:
-    """提交一批文件，返回 (batch_id, upload_urls, data_ids)。
+    """Submit one batch. Returns (batch_id, upload_urls, data_ids).
 
-    data_id 与 pdfs 一一对应，用于结果回溯（避免 file_name 重名歧义）。
+    data_id is 1:1 with pdfs so results can be matched even if file names collide.
     """
     files: list[dict[str, Any]] = []
     data_ids: list[str] = []
@@ -175,7 +177,7 @@ def submit_batch(
 
 
 def upload_file(local_path: Path, upload_url: str) -> None:
-    """PUT 上传到 OSS。注意：不要带 Content-Type 头。"""
+    """PUT the file to OSS. Do not send a Content-Type header."""
     with local_path.open("rb") as f:
         resp = requests.put(upload_url, data=f, timeout=600)
     if resp.status_code not in (200, 201):
@@ -202,7 +204,7 @@ def download_zip(url: str) -> bytes:
 
 
 def extract_and_rename(zip_bytes: bytes, out_dir: Path, basename: str) -> None:
-    """解压到 out_dir，并把 <uuid>_xxx 重命名为 <basename>_xxx。"""
+    """Extract into out_dir and rename <uuid>_xxx to <basename>_xxx."""
     out_dir.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
         zf.extractall(out_dir)
@@ -239,7 +241,7 @@ def process_batch(
     pbar: tqdm,
     root: Path,
 ) -> Counter:
-    """提交一批 PDF、上传、轮询、解压。返回 {state: count} 统计。"""
+    """Submit, upload, poll, and extract one batch. Returns {state: count}."""
     stats: Counter = Counter()
 
     batch_id, upload_urls, data_ids = submit_batch(token, pdfs, **options)
@@ -338,52 +340,56 @@ def _chunked(seq: list, size: int) -> Iterable[list]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="批量把目录下所有 PDF 通过 MinerU API 转为 Markdown。",
+        description="Convert every PDF under a directory to Markdown via the MinerU API.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("target", help="目标目录，例如 raw_data/NBPhO")
+    parser.add_argument("target", help="Target directory, e.g. quantum_physics")
     parser.add_argument(
         "--model",
         default="vlm",
         choices=["pipeline", "vlm"],
-        help="精准解析模型版本",
+        help="Parse model version",
     )
-    parser.add_argument("--language", default="en", help="OCR 语言（仅 OCR 路径生效）")
-    parser.add_argument("--page-ranges", default=None, help="指定页码，例: '1-5,8'")
-    parser.add_argument("--is-ocr", action="store_true", help="强制走 OCR")
-    parser.add_argument("--no-formula", action="store_true", help="关闭公式识别")
-    parser.add_argument("--no-table", action="store_true", help="关闭表格识别")
+    parser.add_argument(
+        "--language",
+        default="en",
+        help="OCR language (used on the OCR path only)",
+    )
+    parser.add_argument("--page-ranges", default=None, help="Page ranges, e.g. '1-5,8'")
+    parser.add_argument("--is-ocr", action="store_true", help="Force the OCR path")
+    parser.add_argument("--no-formula", action="store_true", help="Disable formula recognition")
+    parser.add_argument("--no-table", action="store_true", help="Disable table recognition")
     parser.add_argument(
         "--extra-formats",
         default=None,
-        help="额外导出格式，逗号分隔，可选 docx/html/latex",
+        help="Extra export formats, comma-separated: docx/html/latex",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
         default=20,
-        help=f"单次提交文件数（API 上限 {MAX_BATCH_SIZE}）",
+        help=f"Files per submit (API cap {MAX_BATCH_SIZE})",
     )
-    parser.add_argument("--poll-interval", type=int, default=5, help="批次轮询间隔（秒）")
-    parser.add_argument("--batch-timeout", type=int, default=3600, help="单批最长等待（秒）")
-    parser.add_argument("--limit", type=int, default=None, help="只处理前 N 个待转 pdf（调试）")
-    parser.add_argument("--force", action="store_true", help="忽略已存在的输出目录，强制重跑")
-    parser.add_argument("--dry-run", action="store_true", help="只打印待处理文件列表，不调用 API")
+    parser.add_argument("--poll-interval", type=int, default=5, help="Batch poll interval (seconds)")
+    parser.add_argument("--batch-timeout", type=int, default=3600, help="Max wait per batch (seconds)")
+    parser.add_argument("--limit", type=int, default=None, help="Process only the first N pending PDFs (debug)")
+    parser.add_argument("--force", action="store_true", help="Ignore existing output dirs and rerun")
+    parser.add_argument("--dry-run", action="store_true", help="Print pending files only; do not call the API")
     parser.add_argument(
         "--token",
         default=os.environ.get("MINERU_TOKEN"),
-        help="MinerU Token，默认读环境变量 MINERU_TOKEN",
+        help="MinerU token (default: MINERU_TOKEN env)",
     )
     args = parser.parse_args(argv)
 
     target = Path(args.target).expanduser().resolve()
     if not target.is_dir():
-        print(f"ERROR: 不是有效目录: {target}", file=sys.stderr)
+        print(f"ERROR: not a directory: {target}", file=sys.stderr)
         return 2
 
     all_pdfs = find_pdfs(target)
     if not all_pdfs:
-        print(f"在 {target} 下没有找到任何 .pdf")
+        print(f"No .pdf files found under {target}")
         return 0
 
     if args.force:
@@ -396,25 +402,25 @@ def main(argv: list[str] | None = None) -> int:
             (skipped if already_done(pdf) else pending).append(pdf)
 
     print(
-        f"扫描 {target}: 共 {len(all_pdfs)} 个 pdf，"
-        f"已完成 {len(skipped)} 个，待处理 {len(pending)} 个。"
+        f"Scan {target}: {len(all_pdfs)} pdf files, "
+        f"{len(skipped)} already done, {len(pending)} pending."
     )
     if args.limit is not None:
         pending = pending[: args.limit]
-        print(f"--limit 限制本次处理 {len(pending)} 个。")
+        print(f"--limit: processing {len(pending)} file(s).")
 
     if not pending:
-        print("没有需要处理的文件，结束。")
+        print("Nothing to do.")
         return 0
 
     if args.dry_run:
-        print("--dry-run 模式，只列出待处理文件：")
+        print("--dry-run, pending files:")
         for pdf in pending:
             print(f"  {_rel(pdf, target)}")
         return 0
 
     if not args.token:
-        print("ERROR: 未提供 token，请设置 MINERU_TOKEN 或传 --token", file=sys.stderr)
+        print("ERROR: no token; set MINERU_TOKEN or pass --token", file=sys.stderr)
         return 2
 
     extra_formats = (
@@ -451,15 +457,15 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 overall.update(stats)
             except QuotaExhaustedError as e:
-                tqdm.write(f"[FATAL] MinerU API 额度已用完: {e}")
+                tqdm.write(f"[FATAL] MinerU API quota exhausted: {e}")
                 exit_code = 3
                 break
             except AuthError as e:
-                tqdm.write(f"[FATAL] MinerU Token 鉴权失败: {e}")
+                tqdm.write(f"[FATAL] MinerU token auth failed: {e}")
                 exit_code = 4
                 break
             except MineruError as e:
-                tqdm.write(f"[FATAL] MinerU API 错误: {e}")
+                tqdm.write(f"[FATAL] MinerU API error: {e}")
                 exit_code = 5
                 break
             except requests.HTTPError as e:
@@ -470,16 +476,16 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         pbar.close()
 
-    print("\n========== 汇总 ==========")
-    print(f"目标目录          : {target}")
-    print(f"扫描到 pdf        : {len(all_pdfs)}")
-    print(f"已完成（跳过）     : {len(skipped)}")
-    print(f"本次提交          : {len(pending)}")
+    print("\n========== summary ==========")
+    print(f"target            : {target}")
+    print(f"pdf scanned       : {len(all_pdfs)}")
+    print(f"already done      : {len(skipped)}")
+    print(f"submitted         : {len(pending)}")
     for k in ("done", "failed", "upload_failed", "extract_failed", "done_no_zip", "timeout"):
         if overall.get(k):
             print(f"  {k:<16}: {overall[k]}")
     if exit_code != 0:
-        print(f"提前退出，退出码 {exit_code}")
+        print(f"Stopped early, exit code {exit_code}")
 
     return exit_code
 
