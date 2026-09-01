@@ -11,7 +11,7 @@
 *Accepted to **EMNLP 2026 Findings***
 
 <br/>
-<img src="assets/overview.png" alt="StudyBench construction pipeline" width="100%"/>
+<img src="assets/StudyBench.png" alt="StudyBench construction pipeline" width="100%"/>
 
 </div>
 
