@@ -1,40 +1,32 @@
 <div align="center">
 
-# StudyBench
+# StudyBench: Can Self-Evolution Squeeze Textbooks for Olympiad Capability?
 
-### Can Self-Evolution Squeeze Textbooks for Olympiad Capability?
+[![EMNLP 2026 Findings](https://img.shields.io/badge/EMNLP%202026-Findings-b31b1b?style=for-the-badge)](https://arxiv.org/abs/2609.00787)  [![arXiv](https://img.shields.io/badge/arXiv-2609.00787-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://arxiv.org/abs/2609.00787)  [![Github](https://img.shields.io/badge/StudyBench-000000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/thunlp/StudyBench)  [![HF Paper](https://img.shields.io/badge/HF--Paper-FFD14D?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/papers/2609.00787)
 
-[![EMNLP](https://img.shields.io/badge/EMNLP%202026-Findings-b31b1b.svg)](https://github.com/thunlp/StudyBench)
-[![Paper](https://img.shields.io/badge/📄-Paper-blue.svg)](./paper.tex)
-[![Code](https://img.shields.io/badge/💻-Code-green.svg)](https://github.com/thunlp/StudyBench)
-
-*Accepted to **EMNLP 2026 Findings***
-
-<br/>
-<img src="assets/StudyBench.png" alt="StudyBench construction pipeline" width="100%"/>
+**A controlled physics benchmark that measures how much capability a self-evolution method can squeeze out of a fixed shelf of textbooks.**
 
 </div>
 
----
+- ✨ [Paper](https://arxiv.org/abs/2609.00787)
+- 💻 [Code](https://github.com/thunlp/StudyBench)
 
-## 🚀 Introduction
-
-Humans need only a handful of well-written textbooks to master a discipline and attempt its hardest problems. An ideal self-evolution method should share the same property: **autonomously learning from raw training material for transferable problem-solving capability**.
-
-**StudyBench** is a controlled physics benchmark that measures how efficiently a self-evolution method converts a fixed corpus into that capability. Eleven canonical textbooks form the training material. The test side is split into:
-
-- **Application Set** — difficult end-of-chapter textbook problems, measuring *absorption*
-- **Transfer Set** — olympiad-level theory problems certified reachable from the same books, measuring *transfer*
-
-On three base models (Llama-3.2-3B-Instruct, Qwen3-8B, Opus 4.7), Application-Set gains rarely become olympiad capability. A guidance ablation exposes a **Guidance Gap**: even the strongest method closes only a small fraction of what the same material unlocks when supplied as in-context guidance. Every profiled loop also hits a **Compute Plateau**. The remaining gap is therefore a *method* problem rather than a data or compute problem.
-
-This repository releases the test sets, the two instruction layers, the evaluation harness, and the pipeline that rebuilds the copyrighted **Corpus** from your own legal copies of the textbooks.
+![StudyBench construction pipeline: textbook sources to extraction to reachability filter to benchmark](assets/StudyBench.png)
 
 ---
 
-## ✨ News
+## 📖 Introduction
 
-- **2026.08** — StudyBench is accepted to **EMNLP 2026 Findings**. Code and data are released in this repository.
+A physics student needs only a handful of well-written textbooks to reach the hardest problems in the field. The capability is already latent in the pages; reading is the act of pressing it out. **StudyBench** asks whether a self-evolution method can perform the same squeeze — turning a fixed corpus of textbooks into transferable problem-solving capability, with no extra human supervision.
+
+The material is eleven canonical physics textbooks. The test side is split so the two things people conflate stay separate:
+
+- **Application Set** — hard end-of-chapter textbook problems, measuring *absorption* of the material.
+- **Transfer Set** — olympiad-level theory problems certified reachable from the same books, measuring *transfer* to problems harder than any exercise.
+
+Across three base models (Llama-3.2-3B-Instruct, Qwen3-8B, Opus 4.7), the juice mostly stays in the fruit. On Qwen3-8B, **GEPA** — the strongest method here — lifts Application `Par@8` from **17.05 to 34.85**, yet its Transfer `Par@8` reaches only **7.04**. Supply the very same textbook content as in-context guidance and Transfer `Par@8` jumps to **100.00**: the capability is provably in the books, so the shortfall is not missing material. Pushing harder on compute does not recover it either — scaling one loop from **8 to 614 GPU·hr (76×)** leaves accuracy saturated early, around **~8.5 GPU·hr**. **The remaining gap is a method problem, not a data or compute problem.**
+
+This repository releases the two test sets, the two instruction layers, the evaluation code, and the pipeline that rebuilds the copyrighted **Corpus** from your own legal copies of the textbooks. **StudyBench is accepted to EMNLP 2026 Findings.**
 
 ---
 
@@ -42,18 +34,18 @@ This repository releases the test sets, the two instruction layers, the evaluati
 
 Training material is factored into three nested layers so different self-evolution families can consume what they need:
 
-| Layer | What it is | Released? | Size |
-| --- | --- | --- | --- |
-| **Corpus** | Raw textbook passages (Markdown) | Pipeline only — books are in-copyright | 317 chapter files, ~6.0M tokens |
-| **Instructions with Answer** | Exercises whose gold answer we extracted | Yes | 1,420 |
-| **Instructions without Answer** | Exercises without a recoverable gold answer | Yes | 646 |
+| Layer                           | What it is                                  | Size                            |
+| ------------------------------- | ------------------------------------------- | ------------------------------- |
+| **Corpus**                      | Raw textbook passages (Markdown)            | ~6.0M tokens |
+| **Instructions with Answer**    | Exercises whose gold answer we extracted    | 1,420                           |
+| **Instructions without Answer** | Exercises without a recoverable gold answer | 646                             |
 
 The two test splits form a built-in difficulty progression. Items are filtered with Qwen3-8B, then reused for the other base models.
 
-| Split | Source | Parents | Sub-problems | What it measures |
-| --- | --- | --- | --- | --- |
-| **Application Set** | Hard textbook exercises | 88 | 109 | Absorption of the training material |
-| **Transfer Set** | APhO / EuPhO / IPhO / IOAA / NBPhO / OPhO | 90 | 280 | Transfer to problems harder than any textbook exercise |
+| Split               | Source                                    | Parents | Sub-problems | What it measures                                       |
+| ------------------- | ----------------------------------------- | ------- | ------------ | ------------------------------------------------------ |
+| **Application Set** | Hard textbook exercises                   | 88      | 109          | Absorption of the training material                    |
+| **Transfer Set**    | APhO / EuPhO / IPhO / IOAA / NBPhO / OPhO | 90      | 280          | Transfer to problems harder than any textbook exercise |
 
 Construction guarantees three properties:
 
@@ -65,13 +57,13 @@ Construction guarantees three properties:
 
 ## ⚡ Quick Start
 
-### 1) Prerequisites
+**Prerequisites**
 
 - Python 3.10+
 - An OpenAI-compatible API (for generation and/or the LLM judge), **or** a local vLLM server
 - Optional: a [MinerU](https://mineru.net/apiManage/docs) token, only if you rebuild the Corpus
 
-### 2) Installation
+**Installation**
 
 ```bash
 git clone https://github.com/thunlp/StudyBench.git
@@ -79,7 +71,7 @@ cd StudyBench
 pip install -r requirements.txt
 ```
 
-Create `env_local.sh` in the repo root (gitignored; do not commit secrets):
+Create `env_local.sh` in the repo root (gitignored; do not commit secrets). The benchmark wrappers source it automatically:
 
 ```bash
 export OPENAI_API_KEY="your-key"
@@ -88,11 +80,7 @@ export OPENAI_BASE_URL="https://your-endpoint/v1"
 export MINERU_TOKEN="your-mineru-token"
 ```
 
-`env.sh` is a template. The benchmark wrappers source `env_local.sh` automatically.
-
-### 3) Evaluate a model
-
-Open-weight models go through `benchmark_model.sh` (vLLM serve + generate + judge). Pick a split with `DATASET=textbook` (Application Set) or `DATASET=competition` (Transfer Set).
+**Evaluate a model.** Open-weight models go through `benchmark_model.sh` (vLLM serve + generate + judge). Pick a split with `DATASET=textbook` (Application Set) or `DATASET=competition` (Transfer Set).
 
 ```bash
 # Qwen3-8B on the Application Set (override the cluster-specific defaults)
@@ -105,64 +93,28 @@ PASS_K=8 TEMPERATURE=1.0 TOP_P=0.95 TOP_K=20 MAX_TOKENS=32768 \
 JUDGE_MODEL=deepseek-v4-flash-0731 \
 JUDGE_BASE_URL="$OPENAI_BASE_URL" \
 bash benchmark_model_qwen3_8b.sh
-```
 
-```bash
 # Same model on the Transfer Set
-DATASET=competition \
-TAG=qwen3_8b_transfer \
-bash benchmark_model_qwen3_8b.sh
+DATASET=competition TAG=qwen3_8b_transfer bash benchmark_model_qwen3_8b.sh
 ```
 
-Paper protocol for open-weight models: `k=8`, temperature `1.0`, top-*p* `0.95`, top-*k* `20`, 32,768-token cap, thinking mode on for Qwen3-8B. Repeat the `pass@8` evaluation three times with independent seeds and report mean ± std. Opus 4.7 uses `k=1`.
+Paper protocol for open-weight models: `k=8`, temperature `1.0`, top-*p* `0.95`, top-*k* `20`, 32,768-token cap, thinking mode on for Qwen3-8B; repeat three times with independent seeds and report mean ± std. Opus 4.7 uses `k=1` through a separate agent wrapper (`benchmark_claude_code_opus.sh`), not vLLM.
 
-Or call the runner directly:
+Method-specific conditioning is applied at eval time. Guidance is compatible with the three prompt artefacts; ACE / GEPA / EvoSkill are mutually exclusive:
 
-```bash
-python eval/run_benchmark.py \
-    --model qwen3_8b \
-    --backend api \
-    --data_paths data/qwen3_8b_textbook_problem.json \
-    --output_dir results_qwen3_8b \
-    --tag application \
-    --pass_k 8 --temperature 1.0 --top_p 0.95 --top_k 20 \
-    --max_tokens 32768 --nproc 16 \
-    --judge_model deepseek-v4-flash-0731 \
-    --judge_base_url "$OPENAI_BASE_URL" \
-    --judge_api_key "$OPENAI_API_KEY" \
-    --strip_think_for_model_eval --resume_eval
-```
+| Artefact                   | Flag / env                                        |
+| -------------------------- | ------------------------------------------------- |
+| ACE playbook               | `--ace_playbook_path` / `ACE_PLAYBOOK_PATH`       |
+| GEPA system prompt         | `--gepa_prompt_path` / `GEPA_PROMPT_PATH`         |
+| EvoSkill skills            | `--evoskill_skills_path` / `EVOSKILL_SKILLS_PATH` |
+| Textbook-grounded guidance | `--guidance_path` / `GUIDANCE_PATH`               |
 
-Relative `--data_paths` are resolved from `eval/`. Generation-only / judge-only / resume:
-
-| Mode | How |
-| --- | --- |
-| Generate then judge | default (`RUN_MODE=full` or omit `--only_*`) |
-| Generate only | `RUN_MODE=generate` or `--only_generate` |
-| Judge only | `RUN_MODE=eval` or `--only_eval --resume_eval` |
-| Slice | `TEST_START=0 TEST_END=4` or `--test_start` / `--test_end` |
-
-Claude Code / Opus 4.7 uses a separate wrapper (agent harness, not vLLM):
-
-```bash
-DATASET=textbook bash benchmark_claude_code_opus.sh
-DATASET=competition bash benchmark_claude_code_opus.sh
-```
-
-Method-specific conditioning at eval time:
-
-| Artefact | Flag / env |
-| --- | --- |
-| ACE playbook | `--ace_playbook_path` / `ACE_PLAYBOOK_PATH` |
-| GEPA system prompt | `--gepa_prompt_path` / `GEPA_PROMPT_PATH` |
-| EvoSkill skills | `--evoskill_skills_path` / `EVOSKILL_SKILLS_PATH` |
-| Textbook-grounded guidance | `--guidance_path` / `GUIDANCE_PATH` |
-
-Guidance is compatible with the three prompt artefacts. ACE / GEPA / EvoSkill are mutually exclusive.
+You can also call the runner directly (`python eval/run_benchmark.py …`); relative `--data_paths` resolve from `eval/`, and `RUN_MODE=generate|eval|full` selects generate-only / judge-only / both.
 
 ---
 
-## 📁 Training Material
+
+## 📚 Training Material
 
 Methods that consume only instruction layers can start from the released files. Methods that need raw passages must rebuild the Corpus locally (next section).
 
@@ -174,23 +126,9 @@ train_data/
   verifier.py                      # rule-based reward for RL (no LLM judge)
 ```
 
-`Instructions with Answer` = the two `verifiable_*.json` files (1,420). `Instructions without Answer` = `unverifiable_instr.json` (646). Each record is a chat-style `messages` list plus `answer` / `answer_type` / `type_sequence` / `metadata` (`source`, `source_problem_id`, `source_chapter`, `sub_discipline`).
+`Instructions with Answer` = the two `verifiable_*.json` files (1,420). `Instructions without Answer` = `unverifiable_instr.json` (646). Each record is a chat-style `messages` list plus `answer` / `answer_type` / `type_sequence` / `metadata`.
 
-Nine answer types, matching the evaluator:
-
-| Type | Meaning |
-| --- | --- |
-| `NV` | numeric value |
-| `EX` | symbolic expression |
-| `EQ` | equation |
-| `TUP` | ordered tuple |
-| `IN` | interval |
-| `MC` | single multiple-choice letter |
-| `TF` | boolean |
-| `QL` | short qualitative phrase |
-| `ALT` | alternative acceptable forms |
-
-Composite types (`TUP`, `ALT`) carry a `type_sequence` that tells the verifier how to judge each slot.
+Nine answer types match the evaluator — `NV` numeric value, `EX` symbolic expression, `EQ` equation, `TUP` ordered tuple, `IN` interval, `MC` single multiple-choice letter, `TF` boolean, `QL` short qualitative phrase, `ALT` alternative acceptable forms. Composite types (`TUP`, `ALT`) carry a `type_sequence` telling the verifier how to judge each slot.
 
 For RL, use only the rule-based verifier so the reward signal cannot be hacked through the LLM judge:
 
@@ -225,74 +163,43 @@ python scripts/benchmark_stats.py          # dataset inventory
 python scripts/pass_at_8_stats.py          # Par@8 / Sub@8 from a 24-attempt dump
 ```
 
+The **Naive Reachability Filter** that certifies the Transfer Set is reproduced under `filter/`. It decomposes each olympiad sub-problem into knowledge points, retrieves and verifies textbook fragments, then writes methodological guidance naming which concepts and formulae to use — without stating the answer. Pass the resulting guidance JSON to evaluation with `--guidance_path` / `GUIDANCE_PATH`; see `filter/README_filter.md` for stage-by-stage inputs and outputs.
+
 ---
 
-## 📚 Rebuild the Corpus
+## 🔧 Rebuild the Corpus
 
-The eleven textbooks are in-copyright commercial works. We do not ship PDFs, scans, or the parsed Markdown. What this repo ships is the **processing pipeline**. Collect your own legal copies (and, where relevant, official solution manuals), lay them out as below, and run the pipeline. It converts PDFs to Markdown, applies light OCR cleanup, and redacts every Application Set item so the training Corpus does not contain the test problems.
+The eleven textbooks are in-copyright commercial works. We ship no PDFs, scans, or parsed Markdown — only the **processing pipeline**. Collect your own legal copies (and, where relevant, official solution manuals), lay them out as below, and run the pipeline. It converts PDFs to Markdown, applies light OCR cleanup, and redacts every Application Set item so the training Corpus does not contain the test problems.
 
-Do not commit `PhysicsBooks/`, the PDFs, or the parsed Markdown. Keep `MINERU_TOKEN` in `env_local.sh`.
+Use these **directory names** exactly. `redact_eval.py` matches the last folder under `PhysicsBooks/` to the `"source"` field in the eval JSON. Books with a dagger are bundled with their official solution manual — put those PDFs in the same `source` directory.
 
-### Books
+| Directory (`source`)               | Textbook                                                    | Area             |
+| ---------------------------------- | ----------------------------------------------------------- | ---------------- |
+| `Morin_ClassicalMechanics`         | *Introduction to Classical Mechanics* (Morin)               | Mechanics        |
+| `Kleppner_Mechanics`               | *Introduction to Mechanics* (Kleppner & Kolenkow) †         | Mechanics        |
+| `Purcell_EM`                       | *Electricity and Magnetism* (Purcell & Morin) †             | Electromagnetism |
+| `Griffiths_Electrodynamics`        | *Introduction to Electrodynamics* (Griffiths) †             | Electromagnetism |
+| `Blundell_ThermalPhysics`          | *Concepts in Thermal Physics* (Blundell & Blundell) †       | Thermal Physics  |
+| `Georgi_Waves`                     | *The Physics of Waves* (Georgi) †                           | Waves            |
+| `EisbergResnick_QuantumPhysics`    | *Quantum Physics* (Eisberg & Resnick)                       | Quantum Physics  |
+| `French_SpecialRelativity`         | *Special Relativity* (French)                               | Relativity       |
+| `TaylorWheeler_SpacetimePhysics`   | *Spacetime Physics* (Taylor & Wheeler)                      | Relativity       |
+| `CarrollOstlie_ModernAstrophysics` | *An Introduction to Modern Astrophysics* (Carroll & Ostlie) | Astrophysics     |
+| `Palen_SchaumAstronomy`            | *Schaum's Outline of Astronomy* (Palen)                     | Astrophysics     |
 
-Use these **directory names** exactly. `redact_eval.py` matches the last folder under `PhysicsBooks/` to the `"source"` field in the eval JSON. Books marked with a dagger in the paper are bundled with their official solution manual — put those PDFs in the same `source` directory.
-
-| Directory (`source`) | Textbook | Area |
-| --- | --- | --- |
-| `Morin_ClassicalMechanics` | *Introduction to Classical Mechanics* (Morin) | Mechanics |
-| `Kleppner_Mechanics` | *Introduction to Mechanics* (Kleppner & Kolenkow) † | Mechanics |
-| `Purcell_EM` | *Electricity and Magnetism* (Purcell & Morin) † | Electromagnetism |
-| `Griffiths_Electrodynamics` | *Introduction to Electrodynamics* (Griffiths) † | Electromagnetism |
-| `Blundell_ThermalPhysics` | *Concepts in Thermal Physics* (Blundell & Blundell) † | Thermal Physics |
-| `Georgi_Waves` | *The Physics of Waves* (Georgi) † | Waves |
-| `EisbergResnick_QuantumPhysics` | *Quantum Physics* (Eisberg & Resnick) | Quantum Physics |
-| `French_SpecialRelativity` | *Special Relativity* (French) | Relativity |
-| `TaylorWheeler_SpacetimePhysics` | *Spacetime Physics* (Taylor & Wheeler) | Relativity |
-| `CarrollOstlie_ModernAstrophysics` | *An Introduction to Modern Astrophysics* (Carroll & Ostlie) | Astrophysics |
-| `Palen_SchaumAstronomy` | *Schaum's Outline of Astronomy* (Palen) | Astrophysics |
-
-Split each book into one PDF per chapter. MinerU writes a sibling folder next to each PDF:
-
-```
-PhysicsBooks/
-  TaylorWheeler_SpacetimePhysics/
-    00_cover_toc.pdf
-    01_chapter1.pdf
-    01_chapter1/              # created by the pipeline
-      full.md                 # MinerU output
-      ocrfix.md               # light cleanup
-      ocrfix.redacted.md      # Corpus used for training
-```
-
-### Run
+Split each book into one PDF per chapter, then run:
 
 ```bash
-pip install requests tqdm          # MinerU client extras
 bash corpus_process.sh
 ```
 
 Three steps; existing outputs are skipped (`--force` to redo a step):
 
-1. **Parse** — `corpus_scripts/mineru_parse.py` uploads pending PDFs to MinerU (VLM+OCR) and unpacks `full.md`. `--dry-run` lists work; `--limit N` is a smoke test.
-2. **OCR cleanup** — `corpus_scripts/ocr_fix.py` writes `ocrfix.md` (drop VLM prompt leaks, rejoin split math, strip leftover page numbers). It does **not** resolve ν/v or l/1.
-3. **Redact** — `corpus_scripts/redact_eval.py` finds the single best passage in that book's `ocrfix.md` for each Application Set field and replaces it with `[REDACTED]`. The eval JSON is never modified. Default: 13-gram seeds, 60% coverage.
+1. **Parse** — `corpus_scripts/mineru_parse.py` uploads pending PDFs to MinerU (VLM+OCR) and unpacks `full.md`.
+2. **OCR cleanup** — `corpus_scripts/ocr_fix.py` writes `ocrfix.md` (drop VLM prompt leaks, rejoin split math, strip leftover page numbers).
+3. **Redact** — `corpus_scripts/redact_eval.py` finds the single best passage for each Application Set field and replaces it with `[REDACTED]` (default: 13-gram seeds, 60% coverage). The eval JSON is never modified.
 
-After a successful run, train on `PhysicsBooks/<source>/**/ocrfix.redacted.md` only. Do not redistribute those files: they are still derived from copyrighted books. `ocrfix.md` is useful for debugging the matcher.
-
----
-
-## 🧭 Textbook-Grounded Guidance (optional)
-
-The Naive Reachability Filter that certifies the Transfer Set is reproduced under `filter/`. It decomposes each olympiad sub-problem into knowledge points, retrieves and verifies textbook fragments, then writes methodological guidance that names which concepts and formulae to use — without stating the answer.
-
-```bash
-# requires a rebuilt Corpus under train_data/PhysicsBooks/ (or the path the scripts expect)
-python filter/build_textbook_fragments.py
-bash filter/run_full_competition_pipeline.sh
-# START_AT=3 to resume; DRY_RUN=1 to print commands only
-```
-
-See [`filter/README_filter.md`](filter/README_filter.md) for stage-by-stage inputs and outputs. Pass the resulting guidance JSON to evaluation with `--guidance_path` / `GUIDANCE_PATH`.
+After a successful run, train on `PhysicsBooks/<source>/**/ocrfix.redacted.md` only. Do not commit or redistribute `PhysicsBooks/`, the PDFs, or the parsed Markdown — they remain derived from copyrighted books.
 
 ---
 
@@ -300,10 +207,6 @@ See [`filter/README_filter.md`](filter/README_filter.md) for stage-by-stage inpu
 
 ```
 StudyBench/
-├── paper.tex                          # EMNLP 2026 Findings camera-ready source
-├── requirements.txt
-├── env.sh                             # env template
-├── env_local.sh                       # secrets (gitignored)
 ├── train_data/                        # instruction layers + RL verifier
 ├── eval/
 │   ├── run_benchmark.py               # generate + judge
@@ -318,53 +221,51 @@ StudyBench/
 ├── benchmark_model.sh                 # vLLM / OpenAI-compatible wrapper
 ├── benchmark_model_qwen3_8b.sh
 ├── benchmark_model_llama3_2_3b_instruct.sh
-├── benchmark_claude_code.sh           # Claude Code / Opus wrapper
-└── benchmark_claude_code_opus.sh
+└── benchmark_claude_code_opus.sh      # Claude Code / Opus wrapper
 ```
 
 ---
 
 ## 📌 Main Findings (Qwen3-8B)
 
-| Method | Layer | App. `Par@8` | App. `Sub@8` | Trans. `Par@8` | Trans. `Sub@8` |
-| --- | --- | --- | --- | --- | --- |
-| Qwen3-8B (base) | — | 17.05 | 29.36 | 0.00 | 56.43 |
-| Bonito | Corpus | 21.21 | 28.13 | 4.44 | 35.00 |
-| GRPO | Instr. + answer | 28.41 | 38.84 | 4.07 | 57.02 |
-| **GEPA** | Instr. + answer | **34.85** | **44.34** | **7.04** | **58.57** |
-| ACE | Instr. + answer | 31.06 | 41.90 | 2.96 | 57.26 |
-| TTRL | Instr. − answer | 28.79 | 38.84 | 2.59 | 58.57 |
-| Intuitor | Instr. − answer | 26.89 | 38.23 | 5.56 | 58.21 |
-| R-Zero | Data-free | 29.55 | 39.14 | 4.07 | 58.10 |
-| Naive Guidance | Corpus @ infer. | — | — | 100.00 | 100.00 |
+| Method          | Layer             | App. `Par@8` | App. `Sub@8` | Trans. `Par@8` | Trans. `Sub@8` |
+| --------------- | ----------------- | ------------ | ------------ | -------------- | -------------- |
+| Qwen3-8B (base) | —                 | 17.05        | 29.36        | 0.00           | 56.43          |
+| Bonito          | Corpus            | 21.21        | 28.13        | 4.44           | 35.00          |
+| GRPO            | Instr. w/ answer  | 28.41        | 38.84        | 4.07           | 57.02          |
+| **GEPA**        | Instr. w/ answer  | **34.85**    | **44.34**    | **7.04**       | **58.57**      |
+| ACE             | Instr. w/ answer  | 31.06        | 41.90        | 2.96           | 57.26          |
+| TTRL            | Instr. w/o answer | 28.79        | 38.84        | 2.59           | 58.57          |
+| Intuitor        | Instr. w/o answer | 26.89        | 38.23        | 5.56           | 58.21          |
+| R-Zero          | Data-free         | 29.55        | 39.14        | 4.07           | 58.10          |
+| Naive Guidance  | Corpus @ infer.   | —            | —            | 100.00         | 100.00         |
 
-GEPA is the strongest Application-Set method, yet Transfer `Par@8` reaches only 7.04 against a 100% guidance ceiling — about **7%** of the parent-level Guidance Gap. Extra GPU-time past saturation does not close the rest. Full tables, Llama-3.2-3B-Instruct, Opus 4.7, and compute-plateau curves are in the paper.
+GEPA is the strongest Application-Set method, yet Transfer `Par@8` reaches only 7.04 against a 100.00 guidance ceiling — about **7%** of the parent-level Guidance Gap. Every profiled loop also hits a **Compute Plateau**: extra GPU-time past ~8.5 GPU·hr does not close the rest, even out to 614 GPU·hr.
 
----
+![Compute plateau: accuracy saturates early and flattens as GPU-hours grow](assets/compute_plateau.png)
 
-## 🤝 Contributing
-
-Issues and PRs are welcome: evaluation bugs, verifier edge cases, and documentation fixes. Please do not open PRs that add textbook PDFs, parsed Markdown, or other copyrighted material.
+Full tables, Llama-3.2-3B-Instruct, Opus 4.7 (where most methods do not lift Transfer above the base model), and the per-method plateau curves are in the paper.
 
 ---
 
-## 📖 Citation
+## 🎈 Citation
 
 If you use StudyBench, please cite:
 
 ```bibtex
-@inproceedings{chen2026studybench,
-  title     = {{StudyBench}: Can Self-Evolution Squeeze Textbooks for {Olympiad} Capability?},
-  author    = {Yinghao Chen and Zixi Chen and Bingxiang He and Ziqing Qiao and Huan-ang Gao
-               and Yinuo Xu and Yuxin Zuo and Zeyuan Liu and Yuhao Zhan and Chaojun Xiao},
-  booktitle = {Findings of the Association for Computational Linguistics: EMNLP 2026},
-  year      = {2026}
+@misc{chen2026studybenchselfevolutionsqueezetextbooks,
+      title={StudyBench: Can Self-Evolution Squeeze Textbooks for Olympiad Capability?}, 
+      author={Yinghao Chen and Zixi Chen and Bingxiang He and Ziqing Qiao and Huan-ang Gao and Yinuo Xu and Yuxin Zuo and Zeyuan Liu and Yuhao Zhan and Chaojun Xiao},
+      year={2026},
+      eprint={2609.00787},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2609.00787}, 
 }
 ```
 
-## 📎 Related Resources
+---
 
-- **Paper**: [`paper.tex`](./paper.tex)
-- **Code**: [https://github.com/thunlp/StudyBench](https://github.com/thunlp/StudyBench)
+## 🌻 Acknowledgement
 
-Questions about using or extending StudyBench are welcome as GitHub Issues.
+The rule-based verifier builds on [UG-Physics](https://github.com/YangLabHKUST/UGPhysics); Corpus parsing uses [MinerU](https://mineru.net/) for PDF-to-Markdown conversion. Issues and PRs are welcome — evaluation bugs, verifier edge cases, and documentation fixes — but please do not open PRs that add textbook PDFs, parsed Markdown, or other copyrighted material. Thanks for their great contributions!

@@ -1,6 +1,7 @@
 openai
 httpx
 tqdm
+requests
 pandas
 numpy
 sympy
